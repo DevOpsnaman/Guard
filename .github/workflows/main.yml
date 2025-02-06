@@ -1,0 +1,32 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main  # Change to your deployment branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install PEM Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_PEM_KEY }}" > ~/.ssh/ec2_key.pem
+        chmod 600 ~/.ssh/ec2_key.pem
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Remove old files and deploy new version
+      run: |
+        ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          sudo rm -rf /var/www/html/*
+        EOF
+        scp -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no -r * ubuntu@${{ secrets.EC2_HOST }}:/var/www/html/
+
+    - name: Restart Nginx
+      run: |
+        ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "sudo systemctl restart nginx"
