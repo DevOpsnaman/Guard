@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # Change to your deployment branch
+      - main  # Change if using a different branch
 
 jobs:
   deploy:
@@ -24,6 +24,8 @@ jobs:
       run: |
         ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
           sudo rm -rf /var/www/html/*
+          sudo mkdir -p /var/www/html/
+          sudo chown -R ubuntu:ubuntu /var/www/html/
         EOF
         scp -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no -r * ubuntu@${{ secrets.EC2_HOST }}:/var/www/html/
 
